@@ -6,13 +6,13 @@ import java.sql.SQLException;
 
 public class ConnectionFactory {
 
-    // Defaults DEV (Oracle local)
+    // ---- DEV: Oracle local ----
     private static final String DEFAULT_ORACLE_URL =
             "jdbc:oracle:thin:@localhost:1521/XEPDB1";
     private static final String DEFAULT_ORACLE_USER = "system";
     private static final String DEFAULT_ORACLE_PASSWORD = "12345";
 
-    // Defaults PROD (H2 em memória)
+    // ---- PROD: H2 em memória (Railway) ----
     private static final String DEFAULT_H2_URL =
             "jdbc:h2:mem:flow;DB_CLOSE_DELAY=-1;MODE=Oracle";
     private static final String DEFAULT_H2_USER = "sa";
@@ -20,14 +20,21 @@ public class ConnectionFactory {
 
     public static Connection getConnection() throws SQLException {
 
+        // Variáveis de ambiente do Railway (caso você usar banco externo futuramente)
         String url = System.getenv("DB_URL");
         String user = System.getenv("DB_USER");
         String password = System.getenv("DB_PASSWORD");
 
-        // Se não veio nada do ambiente, decide pelo profile do Quarkus
+        // Se não vieram, precisamos decidir entre DEV e PROD
         if (isBlank(url) || isBlank(user) || isBlank(password)) {
-            String profile = System.getProperty("quarkus.profile", "prod"); 
-            // em jar, geralmente é "prod"
+
+            // 1° tentativa: Railway define QUARKUS_PROFILE=prod
+            String profile = System.getenv("QUARKUS_PROFILE");
+
+            // 2° fallback: quando executa via JAR, profile pode vir por system property
+            if (isBlank(profile)) {
+                profile = System.getProperty("quarkus.profile", "prod");
+            }
 
             if ("dev".equalsIgnoreCase(profile)) {
                 url = DEFAULT_ORACLE_URL;
